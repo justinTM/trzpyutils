@@ -1,0 +1,49 @@
+include:
+  - project: trapezoidtech/pipelines
+    ref: TRZ-109-create-python-library-for-lambdas
+    file: global.yml
+  - project: trapezoidtech/pipelines
+    ref: TRZ-109-create-python-library-for-lambdas
+    file: python/jobs/tests.yml
+
+variables:
+  IMAGE_REGISTRY: registry.gitlab.com/trapezoidtech/pipelines
+  IMAGE_TAG: python-TRZ-109-create-python-library-for-lambdas
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
+  POSTGRES_DB: trz
+  POSTGRES_USER: root
+  POSTGRES_PASSWORD: password
+  POSTGRES_HOST_AUTH_METHOD: trust
+  PG_SERVICE: postgres
+  # BUILDKIT_MULTI_PLATFORM: 1
+
+Py DocTest:
+  image: ${IMAGE_REGISTRY}:${IMAGE_TAG}
+  services:
+    - name: public.ecr.aws/bitnami/postgresql:15
+      alias: $PG_SERVICE
+  before_script:
+    - export PG_DB_URI="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${PG_SERVICE}:5432/${POSTGRES_DB}"
+
+pages:
+  image: ${IMAGE_REGISTRY}:${IMAGE_TAG}
+  stage: Release
+  script:
+    - aws-configure
+    - config-git-credentials
+    - git-info > $PATH_GIT_INFO
+    - generate-dotenv-parameters
+    - if [ -f .env ]; then export $(grep -v '^#' .env | xargs); fi
+    - if [ -f pyproject.toml ]; then poetry install; fi
+    - cd "${CI_PROJECT_DIR}/docs"
+    - sphinx-apidoc -o . ../trz_py_utils
+    - mv -v trz_py_utils.rst index.rst
+    - rm modules.rst
+    - sphinx-build -v -b html . ../public
+  artifacts:
+    paths:
+      - public
+  # rules:
+  #   - if: $CI_COMMIT_TAG
+  #   - if: $CI_COMMIT_REF_NAME == "master"

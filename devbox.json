@@ -1,0 +1,138 @@
+{
+  "packages": [
+    "git@latest",
+    "vim@latest",
+    "terraform@1.5.7",
+    "docker@latest",
+    "go@latest",
+    "sass@latest",
+    "awscli@latest",
+    "act@latest",
+    "jq@latest",
+    "terragrunt@latest",
+    "python@3.11.6",
+    "aws-sam-cli@latest",
+    "docker-buildx@latest",
+    "dive@latest",
+    "poetry@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "source parameters/dev.env",
+      "source parameters/local.env",
+      "export CI_PROJECT_DIR=$(poetry env info --path)/..",
+      "export CI_JOB_TOKEN=$GITLAB_ACCESS_TOKEN",
+      "aws sts get-caller-identity >& /dev/null || aws configure",
+      "if [[ \"$VIRTUAL_ENV\" = '' ]]; then source $(poetry env info --path)/bin/activate && poetry install; fi",
+      "export PATH=$(poetry env info --path)/bin:${PATH}",
+      "poetry config http-basic.gitlab gitlab-ci-token $CI_JOB_TOKEN",
+      "[ ! -z $GITLAB_USERNAME ] || { echo \"${RED}error: need your gitlab credentials (set GITLAB_USERNAME AND GITLAB_ACCESS_TOKEN)\" >&2; exit 1; }"
+    ],
+    "scripts": {
+      "build": [
+        "branch=$(git rev-parse --abbrev-ref HEAD)",
+        "account=$(aws sts get-caller-identity | jq -r .Account)",
+        "ecr_registry=${account}.dkr.ecr.us-east-2.amazonaws.com",
+        "tag=${ecr_registry}/trz-py-utils:${branch}",
+        "aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin $ecr_registry >&2",
+        "docker build -t $tag . >&2",
+        "echo \"\n${tag}\n\" >&2",
+        "echo $tag"
+      ],
+      "clean": [
+        "rm -rf dist/"
+      ],
+      "docker-tests": [
+        "request=\"$(python -c 'from tests.params import *; print(REQUEST_GOOD)')\"",
+        "echo passing request: >&2",
+        "echo \"$request\" >&2",
+        "docker run -d -p 9000:8080 \"$tag\" bash",
+        "curl -X POST http://localhost:9000 -d \"$request\""
+      ],
+      "gitinfo": [
+        "./.github/scripts/git-info.sh"
+      ],
+      "package": [
+        "[ -d dist ] || mkdir dist",
+        "echo creating requirements.txt ...",
+        "poetry export -f requirements.txt --without-hashes --output dist/requirements.txt ",
+        "poetry run -q pip install -qq -r dist/requirements.txt -t dist/",
+        "zip -rq $TF_VAR_zip_filename dist/"
+      ],
+      "plan": [
+        "/usr/local/bin/gitlab-ci-local 'Plan Dev' --variable CI_PROJECT_ID=$CI_PROJECT_ID --variable CI_JOB_TOKEN=$CI_JOB_TOKEN  --volume ~/.aws:/root/.aws --variable HOSTNAME=$(hostname) --variable GITLAB_USERNAME=$GITLAB_USERNAME"
+      ],
+      "account": [
+        "aws sts get-caller-identity | jq -r .Account"
+      ],
+      "pull": [
+        "branch=$(git rev-parse --abbrev-ref HEAD)",
+        "account=$(aws sts get-caller-identity | jq -r .Account)",
+        "ecr_registry=${account}.dkr.ecr.us-east-2.amazonaws.com",
+        "tag=${ecr_registry}/trz-py-utils:${branch}",
+        "aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin $ecr_registry >&2",
+        "echo pulling $tag >&2",
+        "docker pull $tag >&2",
+        "echo \"\n${tag}\n\" >&2",
+        "echo $tag"
+      ],
+      "push": [
+        "tag=\"$(devbox run build | sed \"s/Using virtualenv: .*venv//g\" | tr -d '\n')\"",
+        "docker push $tag >&2",
+        "echo tag=\"${tag}\"",
+        "aws lambda update-function-code --function-name trz-py-utils --image-uri \"${tag}\"",
+        "echo $tag"
+      ],
+      "runit": [
+        "tag=\"$(devbox run build | sed \"s/Using virtualenv: .*venv//g\" | tr -d '\n')\"",
+        "echo running container interactively...",
+        "docker run -it --entrypoint /bin/bash $tag"
+      ],
+      "tests": [
+        "docker-compose -f ${CI_PROJECT_DIR}/localstack/docker-compose.yml up --detach",
+        "pytest --doctest-modules --junitxml=report.xml ${SRC_DIR}"
+      ],
+      "lambda": [
+        "tag=\"$(devbox run build | sed \"s/Using virtualenv: .*venv//g\" | tr -d '\n')\"",
+        "docker run --env-file \"parameters/${CI_ENVIRONMENT_STAGE}.env\" -p 9000:8080 -v ~/.aws:/root/.aws $tag"
+      ],
+      "dive": [
+        "tag=\"$(devbox run build | sed \"s/Using virtualenv: .*venv//g\" | tr -d '\n')\"",
+        "dive $tag"
+      ],
+      "curl": [
+        "curl 'http://localhost:9000/2015-03-31/functions/function/invocations' -d \"$( jq -c . src/lambda_func/test_input1.json )\""
+      ],
+      "clean-packages": [
+        "get_this_version() { poetry version | awk '{print $2}'; }",
+        "GITLAB_PACKAGE_SEARCH_URL=${GL_PACKAGES_URL}?per_page=100&order_by=created_at&sort=desc",
+        "search_packages_by_version() { curl -s -H \"PRIVATE-TOKEN: $CI_JOB_TOKEN\" \"${GITLAB_PACKAGE_SEARCH_URL}&package_version=$1\" | jq '.' || true; }",
+        "get_delete_url_from_package() { echo \"$1\" | jq -r '._links.delete_api_path' || true; }",
+        "delete_gitlab_package_by_url() { echo \"deleting package $1 ...\" >&2 && curl -s -X DELETE -H \"PRIVATE-TOKEN: $CI_JOB_TOKEN\" \"$1\"; }",
+        "THIS_VERSION=$( get_this_version );",
+        "FOUND_PACKAGE=$( search_packages_by_version \"$THIS_VERSION\" | jq '.[0]' || true )",
+        "echo current package version: $THIS_VERSION >&2",
+        "if [ $FOUND_PACKAGE == 'null' ]; then echo 'no existing packages found in GitLab for this version' && exit 0; else echo 'found existing package version:' >&2; fi",
+        "echo $FOUND_PACKAGE | jq '.'",
+        "read -p \"delete existing package in GitLab? (y/n): \" CONFIRM && [[ $CONFIRM == [yY] || $CONFIRM == [yY][eE][sS] ]] || exit 1",
+        "API_URL_DELETE_PACKAGE=$( get_delete_url_from_package \"$FOUND_PACKAGE\" )",
+        "delete_gitlab_package_by_url \"$API_URL_DELETE_PACKAGE\""
+      ],
+      "publish": [
+        "devbox run clean-packages",
+        "poetry config repositories.gitlab https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/packages/pypi",
+        "poetry config http-basic.gitlab gitlab-ci-token $CI_JOB_TOKEN",
+        "poetry build -f wheel",
+        "poetry publish --repository gitlab --skip-existing"
+      ],
+      "docs": [
+        "poetry install --with docs",
+        "cd ./docs",
+        "sphinx-apidoc -o . ../${SRC_DIR}",
+        "mv -v ${SRC_DIR}.rst index.rst",
+        "rm modules.rst",
+        "sphinx-build -v -W -b html . ../public"
+      ]
+    }
+  }
+}

@@ -1,0 +1,41 @@
+# AWS secrets
+**/.aws/**
+**secret**
+
+# terraform apply/state artifacts
+terraform/.terraform/**
+**.tfstate**
+
+# Node.js packages
+**/node_modules/**
+
+# golang packages
+**/vendor/**
+
+# JUnit test reports
+*.xml
+node_modules
+test/gotestout.txt
+
+# terragrunt
+.terragrunt-cache
+plan.json
+
+.gitlab-ci-local
+
+# devbox
+.bash_history
+
+# python artifacts
+dist/
+**/*.zip
+__pycache__
+dist/*.whl
+
+# documentation
+public/
+docs/_build/
+*.rst
+
+# macOS
+.DS_Store

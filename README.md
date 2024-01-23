@@ -1,13 +1,13 @@
 # trzpyutils
 
+documentation link:
+https://trzpyutils-trapezoidtech-f9214799d4dd50ec23851e5ed8d318c54d0918.gitlab.io
+
 ## run `Py DocTest` job locally
+note: `gitlab-ci-local` requires you to `git add <file>` if you create a new python file not already in the git index
 ```bash
 gitlab-ci-local \
-    --variable CI_PROJECT_ID=$CI_PROJECT_ID \
-    --variable CI_JOB_TOKEN=$CI_JOB_TOKEN \
-    --variable DOCKER_HOST=""
-    --variable HOSTNAME=$(hostname) \
-    --variable GITLAB_USERNAME=$GITLAB_USERNAME \
+    --variable DOCKER_HOST="" \
     --volume ~/.aws:/root/.aws \
     --privileged --mount-cache \
     'Py DocTest'

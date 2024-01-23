@@ -1,60 +1,23 @@
 {
   "lockfile_version": "1",
   "packages": {
-    "act@latest": {
-      "last_modified": "2024-01-02T02:19:20Z",
-      "resolved": "github:NixOS/nixpkgs/63143ac2c9186be6d9da6035fa22620018c85932#act",
-      "source": "devbox-search",
-      "version": "0.2.57",
-      "systems": {
-        "aarch64-darwin": {
-          "store_path": "/nix/store/1aafm31brxfhky1scyx6xqmkrw1c0zv7-act-0.2.57"
-        },
-        "aarch64-linux": {
-          "store_path": "/nix/store/i8dnb0c61jg67v6cmfl22d5pkll2f4pf-act-0.2.57"
-        },
-        "x86_64-darwin": {
-          "store_path": "/nix/store/vmhfy71nqr3cpd2ccgcb90zqk8744dqj-act-0.2.57"
-        },
-        "x86_64-linux": {
-          "store_path": "/nix/store/1g5cl5ngwbq0y088mwnp7mi04pxliya3-act-0.2.57"
-        }
-      }
-    },
-    "aws-sam-cli@latest": {
-      "last_modified": "2023-12-31T07:44:09Z",
-      "resolved": "github:NixOS/nixpkgs/d44d59d2b5bd694cd9d996fd8c51d03e3e9ba7f7#aws-sam-cli",
-      "source": "devbox-search",
-      "version": "1.103.0",
-      "systems": {
-        "aarch64-darwin": {
-          "store_path": "/nix/store/j9l2z9xx8aylgvqir8bqg4wjwnr454va-aws-sam-cli-1.103.0"
-        },
-        "aarch64-linux": {
-          "store_path": "/nix/store/4ngvq3ijh1czcwav97dgdf45sa4gl588-aws-sam-cli-1.103.0"
-        },
-        "x86_64-linux": {
-          "store_path": "/nix/store/wnsh763wzld7c70r7700a8vzvix0b7ya-aws-sam-cli-1.103.0"
-        }
-      }
-    },
     "awscli@latest": {
-      "last_modified": "2023-12-13T22:54:10Z",
-      "resolved": "github:NixOS/nixpkgs/fd04bea4cbf76f86f244b9e2549fca066db8ddff#awscli",
+      "last_modified": "2024-01-14T03:55:27Z",
+      "resolved": "github:NixOS/nixpkgs/dd5621df6dcb90122b50da5ec31c411a0de3e538#awscli",
       "source": "devbox-search",
-      "version": "1.30.2",
+      "version": "1.31.6",
       "systems": {
         "aarch64-darwin": {
-          "store_path": "/nix/store/jdf1g6c4vn68ij7a2fybz04094p0hp11-awscli-1.30.2"
+          "store_path": "/nix/store/3b6avxgyrnfgawxnlsk0ffi0nm3p6lm8-awscli-1.31.6"
         },
         "aarch64-linux": {
-          "store_path": "/nix/store/b2js84c3akmfzvvvlf65n9jdgikk2lc1-awscli-1.30.2"
+          "store_path": "/nix/store/l2j03pqy6n4mqvaafjxhn69f0ga4aw5x-awscli-1.31.6"
         },
         "x86_64-darwin": {
-          "store_path": "/nix/store/fhb758rjiqiy104f8vfbnch5lzps21lk-awscli-1.30.2"
+          "store_path": "/nix/store/g7x5b2pv3apg0nidn904z100bcw0nfin-awscli-1.31.6"
         },
         "x86_64-linux": {
-          "store_path": "/nix/store/n8bvl7c596gw070yh8zp28vdmiqnfc8m-awscli-1.30.2"
+          "store_path": "/nix/store/xgd2rnk8fwgrrf7myk8wvabsn87c70yf-awscli-1.31.6"
         }
       }
     },
@@ -138,26 +101,6 @@
         }
       }
     },
-    "go@latest": {
-      "last_modified": "2024-01-02T02:19:20Z",
-      "resolved": "github:NixOS/nixpkgs/63143ac2c9186be6d9da6035fa22620018c85932#go",
-      "source": "devbox-search",
-      "version": "1.21.5",
-      "systems": {
-        "aarch64-darwin": {
-          "store_path": "/nix/store/b0rpa34hn6cgbkbn8sfr5dzv723ia3z2-go-1.21.5"
-        },
-        "aarch64-linux": {
-          "store_path": "/nix/store/5jamaixw6ni5c05qqml6ld3j386v871k-go-1.21.5"
-        },
-        "x86_64-darwin": {
-          "store_path": "/nix/store/hyzs4fhjw7zmwra5scss7hapgw22rcm5-go-1.21.5"
-        },
-        "x86_64-linux": {
-          "store_path": "/nix/store/6qd8p8gilzgplpk2ni3109m0k71r21s7-go-1.21.5"
-        }
-      }
-    },
     "jq@latest": {
       "last_modified": "2024-01-02T02:19:20Z",
       "resolved": "github:NixOS/nixpkgs/63143ac2c9186be6d9da6035fa22620018c85932#jq",
@@ -178,24 +121,24 @@
         }
       }
     },
-    "poetry@latest": {
-      "last_modified": "2023-12-13T22:54:10Z",
+    "poetry@1.6.1": {
+      "last_modified": "2023-11-17T14:14:56Z",
       "plugin_version": "0.0.4",
-      "resolved": "github:NixOS/nixpkgs/fd04bea4cbf76f86f244b9e2549fca066db8ddff#poetry",
+      "resolved": "github:NixOS/nixpkgs/a71323f68d4377d12c04a5410e214495ec598d4c#poetry",
       "source": "devbox-search",
-      "version": "1.7.1",
+      "version": "1.6.1",
       "systems": {
         "aarch64-darwin": {
-          "store_path": "/nix/store/xdp0dyglkkfrny00ij665wg1jgywy0lj-python3.11-poetry-1.7.1"
+          "store_path": "/nix/store/7i5h0pfkg3qv0b97dkhgq53i2bb2s4sw-python3.11-poetry-1.6.1"
         },
         "aarch64-linux": {
-          "store_path": "/nix/store/0bwwm54qxchxnrn34h6qflx9cvgpmcwc-python3.11-poetry-1.7.1"
+          "store_path": "/nix/store/12zqkx7h5gwi485np0fcg4n8lafxql7w-python3.11-poetry-1.6.1"
         },
         "x86_64-darwin": {
-          "store_path": "/nix/store/vwlkmaxd6cx8w3a7b4lb0iljqwdxbv74-python3.11-poetry-1.7.1"
+          "store_path": "/nix/store/2svxaq779cpmrsv7l487rb1q5lqdbg0j-python3.11-poetry-1.6.1"
         },
         "x86_64-linux": {
-          "store_path": "/nix/store/22if7pp1p4l03lgxi3ix5nam7dg4isjm-python3.11-poetry-1.7.1"
+          "store_path": "/nix/store/r4avn3bnyfgmgpb30aj6skb4iglg9i9d-python3.11-poetry-1.6.1"
         }
       }
     },
@@ -217,26 +160,6 @@
         },
         "x86_64-linux": {
           "store_path": "/nix/store/5k91mg4qjylxbfvrv748smfh51ppjq0g-python3-3.11.6"
-        }
-      }
-    },
-    "sass@latest": {
-      "last_modified": "2023-12-13T22:54:10Z",
-      "resolved": "github:NixOS/nixpkgs/fd04bea4cbf76f86f244b9e2549fca066db8ddff#sass",
-      "source": "devbox-search",
-      "version": "3.7.4",
-      "systems": {
-        "aarch64-darwin": {
-          "store_path": "/nix/store/pjdz5zmzjapny5sbvcjyig9p803zwgkb-sass-3.7.4"
-        },
-        "aarch64-linux": {
-          "store_path": "/nix/store/chap5p9j9qdvrzm9xj5fpcpy53xzj4z9-sass-3.7.4"
-        },
-        "x86_64-darwin": {
-          "store_path": "/nix/store/784k5crrz19g0r7csnxisi9nbsr847rh-sass-3.7.4"
-        },
-        "x86_64-linux": {
-          "store_path": "/nix/store/j1qb0982hna3dz5hv1xa0s15hxaw1dj4-sass-3.7.4"
         }
       }
     },

@@ -4,17 +4,13 @@
     "vim@latest",
     "terraform@1.5.7",
     "docker@latest",
-    "go@latest",
-    "sass@latest",
     "awscli@latest",
-    "act@latest",
     "jq@latest",
     "terragrunt@latest",
+    "poetry@1.6.1",
     "python@3.11.6",
-    "aws-sam-cli@latest",
     "docker-buildx@latest",
-    "dive@latest",
-    "poetry@latest"
+    "dive@latest"
   ],
   "shell": {
     "init_hook": [
@@ -22,8 +18,8 @@
       "source parameters/local.env",
       "export CI_PROJECT_DIR=$(poetry env info --path)/..",
       "export CI_JOB_TOKEN=$GITLAB_ACCESS_TOKEN",
-      "aws sts get-caller-identity >& /dev/null || aws configure",
       "if [[ \"$VIRTUAL_ENV\" = '' ]]; then source $(poetry env info --path)/bin/activate && poetry install; fi",
+      "aws sts get-caller-identity >& /dev/null || aws configure",
       "export PATH=$(poetry env info --path)/bin:${PATH}",
       "poetry config http-basic.gitlab gitlab-ci-token $CI_JOB_TOKEN",
       "[ ! -z $GITLAB_USERNAME ] || { echo \"${RED}error: need your gitlab credentials (set GITLAB_USERNAME AND GITLAB_ACCESS_TOKEN)\" >&2; exit 1; }"

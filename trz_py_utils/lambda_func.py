@@ -1,4 +1,4 @@
-import logging
+import logging as log
 import json
 from http.client import responses
 from typing import Any
@@ -6,6 +6,9 @@ from socket import gethostname
 
 from aws_lambda_powertools.utilities.validation import validator
 from aws_lambda_powertools.utilities.typing import LambdaContext
+from aws_lambda_powertools.utilities.validation.exceptions import (
+    SchemaValidationError
+)
 from aws_lambda_powertools.utilities.data_classes import (
     APIGatewayProxyEventV2,
 )
@@ -13,8 +16,10 @@ from aws_lambda_powertools.utilities.data_classes import (
 from botocore.response import StreamingBody
 from mypy_boto3_lambda.client import LambdaClient
 
+from trz_py_utils.format import dumps
 
-log = logging.getLogger(__name__)
+
+# log = logging.getLogger(__name__)
 
 
 def error_response(code: int, exception: Exception, **kwargs):
@@ -31,30 +36,23 @@ def error_response(code: int, exception: Exception, **kwargs):
     Example:
         >>> from trz_py_utils.lambda_func import error_response
         >>> res = error_response(500, ValueError("failed to call function"))
-        >>> import json; print(json.dumps(res, indent=4))
-        {
-            "statusCode": 500,
-            "body": {
-                "error": "Internal Server Error",
-                "message": "ValueError: failed to call function"
-            }
-        }
+        >>> res.get("statusCode")
+        500
+        >>> res.get("isBase64Encoded")
+        False
+        >>> isinstance(res.get("body"), str)
+        True
 
     Example:
         >>> from trz_py_utils.lambda_func import error_response
         >>> err = ValueError("failed to call function")
         >>> res = error_response(500, err, results=[1])
-        >>> import json; print(json.dumps(res, indent=4))
-        {
-            "statusCode": 500,
-            "body": {
-                "error": "Internal Server Error",
-                "message": "ValueError: failed to call function",
-                "results": [
-                    1
-                ]
-            }
-        }
+        >>> res.get("statusCode")
+        500
+        >>> res.get("isBase64Encoded")
+        False
+        >>> isinstance(res.get("body"), str)
+        True
     """
     log.info("returning error response...")
     try:
@@ -62,16 +60,23 @@ def error_response(code: int, exception: Exception, **kwargs):
     except KeyError:
         code = 500
         message = "Internal Server Error"
-        log.warn("couldn't find response for code '{code}', using 500...")
+        log.warn(f"couldn't find response for code '{code}', using 500...")
     response = {
         "statusCode": code,
+        "headers": {
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+        },
+        "isBase64Encoded": False,
         "body": {
             "error": message,
             "message": f"{type(exception).__name__}: {exception}",
         }
     }
     response.get("body").update(kwargs)
-    log.debug(json.dumps(response, indent=4))
+    response["body"] = dumps(response["body"])
+    log.info(dumps(response))
     return response
 
 
@@ -87,38 +92,40 @@ def success_response(message: str, **kwargs):
     Example:
         >>> from trz_py_utils.lambda_func import success_response
         >>> res = success_response("called lambda function successfully")
-        >>> import json; print(json.dumps(res, indent=4))
-        {
-            "statusCode": 200,
-            "body": {
-                "message": "called lambda function successfully"
-            }
-        }
+        >>> res.get("statusCode")
+        200
+        >>> res.get("isBase64Encoded")
+        False
+        >>> isinstance(res.get("body"), str)
+        True
 
     Example:
         >>> from trz_py_utils.lambda_func import success_response
         >>> msg = "called lambda function successfully"
         >>> res = success_response(msg, results=[1])
-        >>> import json; print(json.dumps(res, indent=4))
-        {
-            "statusCode": 200,
-            "body": {
-                "message": "called lambda function successfully",
-                "results": [
-                    1
-                ]
-            }
-        }
+        >>> res.get("statusCode")
+        200
+        >>> res.get("isBase64Encoded")
+        False
+        >>> isinstance(res.get("body"), str)
+        True
     """
     log.info("returning success reponse...")
     response = {
         "statusCode": 200,
         "body": {
             "message": message,
-        }
+        },
+        "headers": {
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+        },
+        "isBase64Encoded": False,
     }
     response.get("body").update(kwargs)
-    log.debug(json.dumps(response, indent=4))
+    response["body"] = dumps(response["body"])
+    log.info(dumps(response))
     return response
 
 
@@ -132,6 +139,13 @@ def parse_event(event: APIGatewayProxyEventV2,
 
     Returns:
         tuple[Exception, str]: error (or None) and event body string
+
+    Example:
+        >>> from trz_py_utils.lambda_func import parse_event
+        >>> error, body = parse_event({}, {}, None)
+        >>> error
+        >>> body
+        {}
 
     Example:
         >>> from trz_py_utils.lambda_func import parse_event, error_response
@@ -210,12 +224,16 @@ def parse_event(event: APIGatewayProxyEventV2,
         >>> EVENT = {
         ...     "body": ["val1"],
         ... }
-        >>> try:
-        ...     parse_event(EVENT, {}, REQUEST_SCHEMA)
-        ... except SchemaValidationError as e:
-        ...     print(e)
-        Failed schema validation. Error: data.body must be object, Path: ['data', 'body'], Data: ['val1']
+        >>> error, body = parse_event(EVENT, {}, REQUEST_SCHEMA)
+        >>> error
+        SchemaValidationError("Failed schema validation. Error: data.body must be object, Path: ['data', 'body'], Data: ['val1']")
     """  # noqa
+    body = {}
+    error = None
+    # allow non-lambda executions to skip schema validation
+    if not event and not context:
+        return error, body
+
     @validator(inbound_schema=schema)
     def parse(event, context: LambdaContext) -> tuple[Exception, str]:
         try:
@@ -228,7 +246,12 @@ def parse_event(event: APIGatewayProxyEventV2,
             log.info(json.dumps(event, indent=4))
             return e, None
 
-    return parse(event, context)
+    try:
+        if isinstance(event.get("body", {}), str):
+            event["body"] = json.loads(event["body"])
+        return parse(event, context)
+    except SchemaValidationError as e:
+        return e, {}
 
 
 def get_or_make_request_id(event: APIGatewayProxyEventV2):
@@ -321,7 +344,7 @@ def handle_lambda_response(name: str,
     status = response.get("statusCode", 500)
     if status == 200:
         log.info(f"200 OK response from '{name}' lambda")
-        log.debug(response)
+        log.info(response)
     else:
         msg = f"ERROR lambda '{name}' response not OK ({status}): {response}"
         log.error(msg)
@@ -344,7 +367,7 @@ def call_lambda(name: str, payload: Any, lambda_client: LambdaClient):
         tuple[Exception, dict]: error (or None) and response object
     """
     log.info(f"invoking lambda '{name}'...")
-    log.debug(f"with payload:\n {json.dumps(payload, indent=4)}")
+    log.info(f"with payload:\n {json.dumps(payload, indent=4)}")
 
     # Invoke the target Lambda function
     response_raw = lambda_client.invoke(

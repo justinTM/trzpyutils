@@ -1,10 +1,9 @@
 import logging
-from logging import Logger
 import sys
 
 
 def get_logger():
-    logger = Logger(__name__)
+    logger = logging.getLogger(__name__)
     # logger._logger.propagate = False
     handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter(

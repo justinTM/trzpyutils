@@ -1,5 +1,6 @@
-from typing import Iterable
+from typing import Any, Iterable
 from decimal import Decimal, ROUND_HALF_UP
+import jsonpickle
 
 
 def sizeof_fmt(num: int | float, suffix="B"):
@@ -56,7 +57,46 @@ def unique(iterable: Iterable):
     return values_seen_so_far
 
 
-def percent(value, precision='0.00001'):
-    return Decimal(value).quantize(
+def percent(value: int | str | float, precision='0.00001'):
+    """_summary_
+
+    Args:
+        value (int|str|float): _description_
+        precision (str, optional): _description_. Defaults to '0.00001'.
+
+    Returns:
+        str: formatted percent, eg. "99.9999%"
+
+    Example:
+        >>> from trz_py_utils.format import percent
+        >>> percent(99.9999)
+        '99.99990%'
+    """
+    percent = Decimal(value).quantize(
         Decimal(precision),
         rounding=ROUND_HALF_UP)
+    return f"{percent}%"
+
+
+def dumps(object: Any, indent=4, **kwargs):
+    """json.dumps() but skips non-primitives keys AND values
+
+    Args:
+        object (Any): _description_
+        indent (int, optional): _description_. Defaults to 4.
+
+    Returns:
+        str: string representation of object
+
+    Example:
+        >>> from trz_py_utils.format import dumps
+        >>> from decimal import Decimal
+        >>> print(dumps({1: Decimal, 2: "hello"}))
+        {
+            "1": {
+                "py/type": "decimal.Decimal"
+            },
+            "2": "hello"
+        }
+    """
+    return jsonpickle.encode(object, indent=4)

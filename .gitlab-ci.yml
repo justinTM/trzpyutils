@@ -1,14 +1,14 @@
 include:
   - project: trapezoidtech/pipelines
-    ref: TRZ-109-create-python-library-for-lambdas
+    ref: master
     file: global.yml
   - project: trapezoidtech/pipelines
-    ref: TRZ-109-create-python-library-for-lambdas
+    ref: master
     file: python/jobs/tests.yml
 
 variables:
   IMAGE_REGISTRY: registry.gitlab.com/trapezoidtech/pipelines
-  IMAGE_TAG: python-TRZ-109-create-python-library-for-lambdas
+  IMAGE_TAG: python-master
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
   POSTGRES_DB: trz

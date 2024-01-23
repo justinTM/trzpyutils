@@ -1,10 +1,10 @@
 from typing import Any
 import psycopg2
 from psycopg2._psycopg import connection as Connection
-import logging
+import logging as log
 
 
-log = logging.getLogger(__name__)
+# log = logging.getLogger(__name__)
 
 
 def connect(uri: str):
@@ -114,7 +114,7 @@ def execute_sql(connection: Connection, sql: str,
     try:
         with connection.cursor() as cursor:
             cursor.execute(sql, values)
-            log.debug("executed.")
+            log.info("executed.")
             if is_return:
                 response = try_fetch(cursor)
         connection.commit()

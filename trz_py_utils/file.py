@@ -1,18 +1,22 @@
-import logging
+import logging as log
 from typing import Iterator
 from uuid import uuid4
 from charset_normalizer import from_path
 import chardet
 import subprocess
-from tqdm import tqdm
 import re
 from re import Match
 import json
+from io import TextIOWrapper
+import enlighten
+import time
 
 from .format import percent
 
 
-log = logging.getLogger(__name__)
+# log = logging.getLogger(__name__)
+# print("trz-py-utils file.py logging hierarchy:")
+# print(logging.)
 
 
 def read_file(path: str):
@@ -70,7 +74,8 @@ class BadLine:
                  error: UnicodeDecodeError = None,
                  re_matches: Iterator[Match[str]] = None,
                  line: str = None,
-                 line_no: int = None):
+                 line_no: int = None,
+                 delimiter: str = None):
         # self.position = file.tell()
         self.line_no = line_no
         self.position = self._i_pos_from_error(error)
@@ -78,6 +83,7 @@ class BadLine:
         self.encoding = None
         self.re_matches = re_matches
         self.line = line
+        self.delimiter = delimiter or r"\t"
 
     def peak_bad_char(self, offset=4, mode="r"):
         position_start = int(self.position) - offset
@@ -115,15 +121,53 @@ class BadLine:
         return int(position)
 
     def caret_under_matches(self):
+        """show '^' under characters in a line matching the regex pattern
+
+        Example:
+            >>> from trz_py_utils.file import BadFileReader
+            >>> src = '/tmp/example'
+            >>> with open(src, "w") as f:
+            ...     _ = f.write("09BB¿~NY~1G")
+            >>> bfr = BadFileReader(src)
+            >>> bfr.read(mode="r", encoding="latin-1")
+            >>> bad_line = bfr.bad_lines[0]
+            >>> bad_line.caret_under_matches()
+            ['line 1: 09BBÂ¿~NY~1G', '            ^^', " (re pattern '[^\\\\x00-\\\\x7F]')"]
+        """  # noqa
         caret_line = [' '] * len(self.line)
         preface = f"line {self.line_no}: "
         pl = len(preface)
 
         for m in self.re_matches:
             start, end = m.span()
-            caret_line[start+pl+6:end+pl+6] = ['^'] * (end - start)
+            caret_line[start+pl:end+pl] = ['^'] * (end - start)
 
-        return preface+self.line+"\n"+''.join(caret_line)
+        lines = [preface+self.line, ''.join(caret_line)]
+        lines.append(f" (re pattern '{m.re.pattern}')")
+
+        return lines
+
+    def print(self):
+        _ = [log.info(line) for line in self.caret_under_matches()]
+
+    def count_cols(self):
+        """_summary_
+
+        Returns:
+            int: number of columns
+
+        Example:
+            >>> from trz_py_utils.file import BadFileReader
+            >>> src = '/tmp/example'
+            >>> with open(src, "w") as f:
+            ...     _ = f.write("09BB¿~NY~1G")
+            >>> bfr = BadFileReader(src)
+            >>> bfr.read(mode="r", encoding="latin-1")
+            >>> bad_line = bfr.bad_lines[0]
+            >>> bad_line.count_cols()
+            3
+        """
+        return len(self.line.split(self.delimiter))
 
 
 class BadFileReader:
@@ -144,17 +188,49 @@ class BadFileReader:
            :target: ../public/index.html
     """
     def __init__(self, path: str, mode="r", i_pos=None,
-                 replace="~NULL~", replace_with="~~", **kwargs):
+                 replace="NULL", replace_with="",
+                 delimiter="~", **kwargs):
         self.i_pos = i_pos
         self._mode = mode
         self.path = path
         self._i = 0
         self.bad_lines: list[BadLine] = []
         self.lines: list[str] = []
-        self.re_bad = r"[^\x00-\x7F]"
-        self.replace = replace
-        self.replace_with = replace_with
+        self.replace = f"{delimiter}{replace}{delimiter}"
+        self.replace_with = f"{delimiter}{replace_with}{delimiter}"
         self._kwargs = kwargs or {}
+        self.delim = delimiter
+        self.set_regex()
+
+        # count lines
+        log.info("counting lines...")
+        self.num_total = sum(1 for _ in open(self.path, mode=mode, **kwargs))
+        log.info(f"{self.num_total} total lines.")
+
+        # read headers
+        with open(path, mode=mode, **kwargs) as file:
+            log.info(f"getting headers from first row of '{path}'...")
+            self.headers = self._headers(file)
+            self.ncols = len(self.headers)
+
+    def _headers(self, file: TextIOWrapper, delim: str = None):
+        row = file.readline().strip()
+
+        log.info(f"parsing header row using delim {delim or self.delim}")
+
+        numbers_in_headers = re.findall(r"[0-9]", row)
+        if numbers_in_headers:
+            log.warn("WARNING: header row may potentially be malformed")
+            log.warn(f"found {len(numbers_in_headers)} numbers in row:")
+            log.warn(row)
+        if not (delim or self.delim) in row:
+            log.warn(f"no delim {delim or self.delim} found in {row}")
+
+        headers = row.split(delim or self.delim)
+        log.info(f"found {len(headers)} headers:")
+        log.info(json.dumps(headers, indent=4))
+
+        return headers
 
     def encoding_chardet(self, mode="rb"):
         mode = mode or self._mode
@@ -208,13 +284,13 @@ class BadFileReader:
                 "unit": 'line',
                 "desc": "reading lines",
             }
-            with tqdm(**opts) as progress_bar:
+            with enlighten.get_manager().counter(**opts) as pbar:
                 while True:
                     try:
                         self._i += 1
-                        progress_bar.update(1)
+                        pbar.update(1)
                         good_line = self._parse_line(
-                            line=next(file).strip(), file=file)
+                            line=next(file).strip("\n"), file=file)
                         if good_line:
                             yield good_line
                     except StopIteration:
@@ -233,16 +309,60 @@ class BadFileReader:
                          error=None,
                          re_matches=matches_bad,
                          line=line,
-                         line_no=self._i)
-            log.info(bl.caret_under_matches())
-            self.bad_lines.append(bl)
-            return None
+                         line_no=self._i,
+                         delimiter=self.delim)
+
+            if bl.count_cols() == (self.ncols - 1):
+                # fix this line and continue
+                # add extra delimiter if off by one
+                # eg. 12 headers, 11 columns, create empty value for last col
+                log.warn(f"line {bl.line_no}: appending '{self.delim}'")
+                line += self.delim
+            else:
+                # add this bad line to list
+                bl.print()
+                self.bad_lines.append(bl)
+                return None
 
         # replace substring if found
         if self.replace in line:
             line = line.replace(self.replace, self.replace_with)
 
         return line
+
+    def set_regex(self, accept=[], reject=[r"[^\x00-\x7F]"]):
+        """make regex patterns from list of line matches
+
+        Args:
+            filters_in (list, optional): _description_. Defaults to [].
+            filters_out (list, optional): _description_. Defaults to [r"[^\x00-\x7F]"].
+
+        Returns:
+            _type_: _description_
+
+        Example:
+            >>> from trz_py_utils.file import BadFileReader
+            >>> src = '/tmp/example'
+            >>> with open(src, "w") as f:
+            ...     _ = f.write("hello~world")
+            >>> bfr = BadFileReader(src)
+            ... # set filter to remove lines during bfr.read()
+            >>> n = len(bfr.headers) - 1
+            >>> n
+            1
+            >>> filter_out = [
+            ...     r"[^_]",  # any lines with '_'
+            ...     rf"^(?:[^~]*~){{{n},}}[^~]*$",  # too many commas
+            ... ]
+            >>> bfr.set_regex(reject=filter_out)
+            ('', '[^_]|^(?:[^~]*~){1,}[^~]*$')
+        """  # noqa
+        log.info(f"setting regex for {self.path} to: ")
+        log.info(json.dumps(reject, indent=4))
+        self.re_good = "|".join(accept)
+        self.re_bad = "|".join(reject)
+
+        return self.re_good, self.re_bad
 
     def read(self, **kwargs):
         """Read in a file. Sorts good and bad lines based on
@@ -251,6 +371,21 @@ class BadFileReader:
 
         Arguments:
             kwargs (optional): any arguments for `open()`.
+
+        Example:
+            >>> # fix lines by adding another delimiter
+            >>> # eg. missing tab for blank value 3
+            >>> from trz_py_utils.file import BadFileReader
+            >>> src = '/tmp/example'
+            >>> with open(src, "w") as f:
+            ...     print("HEADER1~HEADER2~HEADER3", file=f)
+            ...     print("value1~NULL~value3", file=f)
+            >>> bfr = BadFileReader(src)
+            >>> bfr.read(mode="r", encoding="latin-1")
+            >>> bfr.headers
+            ['HEADER1', 'HEADER2', 'HEADER3']
+            >>> bfr.lines[1]
+            'value1~~value3'
 
         Example:
             >>> from trz_py_utils.file import BadFileReader
@@ -275,26 +410,40 @@ class BadFileReader:
             >>> bfr.read(mode="r", encoding="latin-1")
             >>> bfr.num_bad
             1
+
+        Example:
+            >>> # fix lines by adding another delimiter
+            >>> # eg. missing tab for blank value 3
+            >>> from trz_py_utils.file import BadFileReader
+            >>> src = '/tmp/example'
+            >>> with open(src, "w") as f:
+            ...     _ = f.write("HEADER1\\tHEADER2\\tHEADER3\\n")
+            ...     _ = f.write("value1\\tvalue2\\t\\n")
+            >>> bfr = BadFileReader(src, delimiter="\\t")
+            >>> bfr.read(mode="r", encoding="latin-1")
+            >>> bfr.headers
+            ['HEADER1', 'HEADER2', 'HEADER3']
+            >>> bfr.lines[1]
+            'value1\\tvalue2\\t'
         """
         self.bad_lines = []
         self.lines = []
-        log.info("counting lines...")
-        self.num_total = sum(1 for _ in open(self.path, **kwargs))
-        log.info(f"{self.num_total} total lines.")
+        start_s = time.time()
         for line in self._yield_lines(**kwargs):
             self.lines.append(line)
+        self.time_read_s = time.time() - start_s
         self.num_good = len(self.lines)
         self.num_bad = len(self.bad_lines)
         log.info(f"found {self.num_bad} bad lines ()")
 
-    def is_equal_columns_every_line(self, sep="~"):
+    def is_equal_columns_every_line(self, delim: str = None):
         bad_lines = []
         bad_lines_i = []
         with open(self.path, self._mode) as fi:
-            n = fi.readline().count(sep)
+            n = fi.readline().count(delim or self.delim)
             i = 2
             for li in fi.readlines():
-                c = li.count(sep)
+                c = li.count(delim or self.delim)
                 if c != n:
                     log.info(f"! line {i+1} has {c} when header has {n}")
                     bad_lines.append(li)
@@ -333,10 +482,10 @@ class BadFileReader:
         n_total = self.num_total
         lines = lines or self.lines
         n_bad = n_total - n_lines
-        pct = percent(100*n_lines / n_total)
+        self.percent_good = pct = 100*n_lines / n_total
 
         log.info(f"writing '{dest}'")
-        log.info(f"{n_lines} lines ({n_total} - {n_bad}) ({pct}%)")
+        log.info(f"{n_lines} lines ({n_total} - {n_bad}) ({percent(pct)})")
         log.info(f"with options:\n{json.dumps(kwargs, indent=4)}")
 
         if kwargs.pop("dry_run", ""):
@@ -349,12 +498,13 @@ class BadFileReader:
             # "unit_scale": True,
             "desc": "writing lines",
         }
-        with tqdm(**opts) as progress_bar:
+        start_s = time.time()
+        with enlighten.get_manager().counter(**opts) as pbar:
             with open(dest, **kwargs) as fo:
                 for line in lines:
                     fo.write(f"{line}\n")
-                    progress_bar.update(1)
-
+                    pbar.update(1)
+        self.time_write_s = time.time() - start_s
         return dest
 
     def print_bad_lines(self):
@@ -367,14 +517,7 @@ class BadFileReader:
             ...     _ = f.write("09BB¿~NY~1G")
             >>> bfr = BadFileReader(src)
             >>> bfr.read(mode="r", encoding="latin-1")
-            >>> lines = bfr.print_bad_lines()
-            >>> print(lines[0])
-            line 1: 09BBÂ¿~NY~1G
-                        ^^
+            >>> bfr.print_bad_lines()
         """
-        lines = []
         for bl in self.bad_lines:
-            line = bl.caret_under_matches()
-            lines.append(line)
-            log.info(line)
-        return lines
+            _ = [log.info(line) for line in bl.caret_under_matches()]

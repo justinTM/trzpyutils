@@ -1,9 +1,9 @@
 from typing import Any
 import json
-import logging
+import logging as log
 
 
-log = logging.getLogger(__name__)
+# log = logging.getLogger(__name__)
 
 
 def get_secret(secret_name: str, sm_client):

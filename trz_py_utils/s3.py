@@ -476,7 +476,7 @@ def get_size(s3_obj: Object):
         tuple(Exception, int): error and size in bytes
 
     Example:
-        >>> from trz_py_utils import s3, format
+        >>> from trz_py_utils import s3,fmt
         >>> from boto3 import resource
         >>> s3_resource = resource("s3", region_name="us-east-2")
         >>> s3_obj = s3_resource.Object("trz-s3-test", "write_text_to_obj.txt")
@@ -484,11 +484,11 @@ def get_size(s3_obj: Object):
         >>> error, size_in_bytes = s3.get_size(s3_obj)
         >>> size_in_bytes
         12
-        >>> format.sizeof_fmt(size_in_bytes)
+        >>> fmt.sizeof_fmt(size_in_bytes)
         '12.0B'
 
     Example:
-        >>> from trz_py_utils import s3, format
+        >>> from trz_py_utils import s3,fmt
         >>> from boto3 import resource
         >>> s3_resource = resource("s3", region_name="us-east-2")
         >>> s3_obj = s3_resource.Object("trz-s3-test", "nonexistent.txt")

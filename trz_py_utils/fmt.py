@@ -14,12 +14,12 @@ def sizeof_fmt(num: int | float, suffix="B"):
         _type_: _description_
 
     Example:
-        >>> from trz_py_utils.format import sizeof_fmt
+        >>> from trz_py_utils.fmt import sizeof_fmt
         >>> sizeof_fmt(5*1024)
         '5.0KB'
 
     Example:
-        >>> from trz_py_utils.format import sizeof_fmt
+        >>> from trz_py_utils.fmt import sizeof_fmt
         >>> sizeof_fmt(5*1024*1024)
         '5.0MB'
     """
@@ -41,12 +41,12 @@ def unique(iterable: Iterable):
         list: unique values in same order.
 
     Example:
-        >>> from trz_py_utils.format import unique
+        >>> from trz_py_utils.fmt import unique
         >>> unique([1, 1, 2, 3, 3, 4])
         [1, 2, 3, 4]
 
     Example:
-        >>> from trz_py_utils.format import unique
+        >>> from trz_py_utils.fmt import unique
         >>> unique(["It", "was", "it", "was"])
         ['It', 'was', 'it']
     """
@@ -68,7 +68,7 @@ def percent(value: int | str | float, precision='0.00001'):
         str: formatted percent, eg. "99.9999%"
 
     Example:
-        >>> from trz_py_utils.format import percent
+        >>> from trz_py_utils.fmt import percent
         >>> percent(99.9999)
         '99.99990%'
     """
@@ -89,7 +89,7 @@ def dumps(object: Any, indent=4, **kwargs):
         str: string representation of object
 
     Example:
-        >>> from trz_py_utils.format import dumps
+        >>> from trz_py_utils.fmt import dumps
         >>> from decimal import Decimal
         >>> print(dumps({1: Decimal, 2: "hello"}))
         {

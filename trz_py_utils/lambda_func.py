@@ -16,7 +16,7 @@ from aws_lambda_powertools.utilities.data_classes import (
 from botocore.response import StreamingBody
 from mypy_boto3_lambda.client import LambdaClient
 
-from trz_py_utils.format import dumps
+from trz_py_utils.fmt import dumps
 
 
 # log = logging.getLogger(__name__)

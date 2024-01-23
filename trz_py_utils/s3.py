@@ -16,8 +16,8 @@ from s3fs import S3FileSystem
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_s3.service_resource import Bucket, Object, S3ServiceResource
 
-from trz_py_utils import format
-from trz_py_utils.format import sizeof_fmt
+from trz_py_utils import fmt
+from trz_py_utils.fmt import sizeof_fmt
 from trz_py_utils.file import BadLine
 
 
@@ -652,7 +652,7 @@ class S3Cleaner:
         self._set_headers()
         self._null_handler(null_handler, delim)
         self._column_count_enforcer(is_enforce_column_count, delim)
-        self.set_regex(format.unique(self._regexes))
+        self.set_regex(fmt.unique(self._regexes))
 
         log.info("setting default regex to:")
         log.info(f"\t{self.regex}")
@@ -693,7 +693,7 @@ class S3Cleaner:
         self.headers = line.split(self.delim)
         self._i += 1
         log.info("found headers:")
-        log.info(f"\t{format.dumps(self.headers)}")
+        log.info(f"\t{fmt.dumps(self.headers)}")
 
     def _add_bad_line(self, **kwargs):
         bl = BadLine(path=self.path,

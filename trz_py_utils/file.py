@@ -11,7 +11,7 @@ from io import TextIOWrapper
 import enlighten
 import time
 
-from .format import percent
+from .fmt import percent
 
 
 # log = logging.getLogger(__name__)

@@ -296,10 +296,10 @@ class BadFileReader:
                     except StopIteration:
                         break  # End of file reached
                     except UnicodeDecodeError as e:
-                        print(f"ERROR: line {self._i}: {e}")
+                        log.error(f"ERROR: line {self._i}: {e}")
                         self.bad_lines.append(BadLine(file, e))
                     except Exception as e:
-                        print(f"ERROR: line {self._i}: {e}")
+                        log.error(f"ERROR: line {self._i}: {e}")
 
     def _parse_line(self, line: str, file):
         # filter out lines containing non-ascii characters

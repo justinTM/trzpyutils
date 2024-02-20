@@ -42,5 +42,5 @@ vcs = "git"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "setuptools>=40.9.0", "wheel"]
-#requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
-build-backend = "poetry_dynamic_versioning.backend"
+# requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+# build-backend = "poetry_dynamic_versioning.backend"

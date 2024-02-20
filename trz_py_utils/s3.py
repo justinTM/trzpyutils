@@ -63,6 +63,9 @@ def upload_img(image: Image, bucket_name: str,
         >>> image = Image.new('RGB', (10, 10))
         >>> upload_img(image, "trz-s3-test", "s3-upload-test.png", s3_r)
         s3.Object(bucket_name='trz-s3-test', key='s3-upload-test.jpg')
+        >>> image = Image.open("tests/images/jpeg_image.jpg")
+        >>> upload_img(image, "trz-s3-test", "s3-upload-test.jpg", s3_r)
+        s3.Object(bucket_name='trz-s3-test', key='s3-upload-test.jpg')
     """
     log.info(f"uploading image '{key}' as {format.value}...")
     bytes_img = BytesIO()

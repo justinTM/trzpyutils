@@ -114,6 +114,8 @@ def execute_sql(connection: Connection, sql: str,
     """
     log.info("executing sql...")
     response = None
+    log.debug(f"sql={sql}")
+    log.debug(f"values={values}")
 
     def try_fetch(cursor):
         try:

@@ -35,13 +35,43 @@ S3_RESOURCE: S3ServiceResource = boto3.resource("s3", region_name=REGION)
 
 
 class S3ImageFormat(Enum):
-    JPEG = "jpeg"
-    PNG = "png"
+    JPEG = "JPG"
+    PNG = "PNG"
+
+    def content_type(self):
+        try:
+            return {
+                S3ImageFormat.JPEG: "image/jpeg",
+                S3ImageFormat.PNG: "image/png",
+            }[self]
+        except KeyError:
+            raise ValueError("Unsupported image format")
+
+    def ext(self):
+        return f".{self.value.lower()}"
+
+    def pillow_format(self):
+        return {
+            S3ImageFormat.JPEG: "JPEG",
+            S3ImageFormat.PNG: "PNG",
+        }[self]
+
+    @staticmethod
+    def from_filepath(filepath):
+        extension = filepath.split(".")[-1].lower()
+        try:
+            return {
+                "jpeg": S3ImageFormat.JPEG,
+                "jpg": S3ImageFormat.JPEG,
+                "png": S3ImageFormat.PNG,
+            }[extension]
+        except KeyError:
+            raise ValueError("File extension must be jpeg, jpg, or png")
 
 
 def upload_img(image: Image, bucket_name: str,
                key: str, s3_resource: S3ServiceResource,
-               format=S3ImageFormat.JPEG):
+               format: S3ImageFormat = None):
     """save pillow Image locally then upload to S3 with ContentType
 
     Args:
@@ -60,31 +90,50 @@ def upload_img(image: Image, bucket_name: str,
         >>> from PIL import Image
         >>> from boto3 import resource
         >>> s3_r = resource("s3", region_name="us-east-2")
+        >>> image = Image.new('RGBA', (10, 10))
+        >>> try:
+        ...     upload_img(image, "trz-s3-test", "s3-upload-test.jpeg", s3_r)
+        ... except OSError as e:
+        ...     if "cannot write mode RGBA as JPEG" in str(e):
+        ...         pass
+        ...     else:
+        ...         raise e
+
+    Example:
+        >>> # saving png
+        >>> from trz_py_utils.s3 import upload_img
+        >>> from PIL import Image
+        >>> from boto3 import resource
+        >>> s3_r = resource("s3", region_name="us-east-2")
         >>> image = Image.new('RGB', (10, 10))
         >>> upload_img(image, "trz-s3-test", "s3-upload-test.png", s3_r)
-        s3.Object(bucket_name='trz-s3-test', key='s3-upload-test.jpg')
-        >>> image = Image.open("tests/images/jpeg_image.jpg")
-        >>> upload_img(image, "trz-s3-test", "s3-upload-test.jpg", s3_r)
-        s3.Object(bucket_name='trz-s3-test', key='s3-upload-test.jpg')
+        s3.Object(bucket_name='trz-s3-test', key='s3-upload-test.png')
+
+    Example:
+        >>> # converting png to jpeg
+        >>> from trz_py_utils.s3 import upload_img
+        >>> from PIL import Image
+        >>> from boto3 import resource
+        >>> bucket = "trz-s3-test"
+        >>> key = "s3-upload-test2.png"
+        >>> s3_r = resource("s3", region_name="us-east-2")
+        >>> image = Image.new('RGB', (10, 10))
+        >>> upload_img(image, bucket, key, s3_r, format=S3ImageFormat.JPEG)
+        s3.Object(bucket_name='trz-s3-test', key='s3-upload-test2.jpg')
     """
-    log.info(f"uploading image '{key}' as {format.value}...")
+    format = format or S3ImageFormat.from_filepath(key)
+    log.info(f"uploading image '{key}' as {format}...")
     bytes_img = BytesIO()
-    image.save(bytes_img, format=format.value)
-    if format is S3ImageFormat.JPEG:
-        ext = ".jpg"
-        type = "image/jpeg"
-    elif format is S3ImageFormat.PNG:
-        ext = ".png"
-        type = "image/png"
+    image.save(bytes_img, format=format.pillow_format())
     # strip off ".png" extension
-    log.info(f"stripping extension '{key.split('.')[-1]}' off '{key}'...")
+    log.debug(f"stripping extension '{key.split('.')[-1]}' off '{key}'...")
     name_no_ext = ".".join(key.split('.')[:-1])
     bucket: Bucket = s3_resource.Bucket(bucket_name)
     obj: Object = bucket.put_object(
-        Key=name_no_ext+ext,
+        Key=name_no_ext+format.ext(),
         Body=bytes_img.getvalue(),
-        ContentType=type)
-    log.info(f"uploaded '{obj.bucket_name}/{obj.key}'.")
+        ContentType=format.content_type())
+    log.info(f"uploaded 's3://{obj.bucket_name}/{obj.key}'.")
 
     return obj
 

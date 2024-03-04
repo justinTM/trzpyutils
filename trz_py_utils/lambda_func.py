@@ -129,8 +129,22 @@ def success_response(message: str, **kwargs):
     return response
 
 
+def parser(event, context: LambdaContext) -> tuple[Exception, str]:
+    try:
+        body = APIGatewayProxyEventV2(event).body
+        log.info("got body:")
+        log.info(json.dumps(body, indent=4))
+        return None, body
+    except Exception as e:
+        log.error("ERROR bad request format:")
+        log.info(json.dumps(event, indent=4))
+        return e, None
+
+
 def parse_event(event: APIGatewayProxyEventV2,
-                context: LambdaContext, schema: dict):
+                context: LambdaContext,
+                schema: dict,
+                parser=parser):
     """Extracts body from lambda event while validating against schema.
 
     Args:
@@ -234,22 +248,10 @@ def parse_event(event: APIGatewayProxyEventV2,
     if not event and not context:
         return error, body
 
-    @validator(inbound_schema=schema)
-    def parse(event, context: LambdaContext) -> tuple[Exception, str]:
-        try:
-            body = APIGatewayProxyEventV2(event).body
-            log.info("got body:")
-            log.info(json.dumps(body, indent=4))
-            return None, body
-        except Exception as e:
-            log.error("ERROR bad request format:")
-            log.info(json.dumps(event, indent=4))
-            return e, None
-
     try:
         if isinstance(event.get("body", {}), str):
             event["body"] = json.loads(event["body"])
-        return parse(event, context)
+        return validator(parser, inbound_schema=schema)(event, context)
     except SchemaValidationError as e:
         return e, {}
 

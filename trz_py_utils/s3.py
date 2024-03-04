@@ -3,7 +3,13 @@ from PIL import Image
 from enum import Enum
 from io import BytesIO
 from uuid import uuid4
-from urllib.parse import urlencode, urlparse, urlunparse, ParseResult
+from urllib.parse import (
+  urlencode,
+  urlparse,
+  urlunparse,
+  unquote,
+  ParseResult
+)
 import enlighten
 from botocore.exceptions import ClientError
 import os
@@ -56,6 +62,9 @@ def upload_img(image: Image, bucket_name: str,
         >>> s3_r = resource("s3", region_name="us-east-2")
         >>> image = Image.new('RGB', (10, 10))
         >>> upload_img(image, "trz-s3-test", "s3-upload-test.png", s3_r)
+        s3.Object(bucket_name='trz-s3-test', key='s3-upload-test.jpg')
+        >>> image = Image.open("tests/images/jpeg_image.jpg")
+        >>> upload_img(image, "trz-s3-test", "s3-upload-test.jpg", s3_r)
         s3.Object(bucket_name='trz-s3-test', key='s3-upload-test.jpg')
     """
     log.info(f"uploading image '{key}' as {format.value}...")
@@ -783,3 +792,117 @@ class S3Cleaner:
 
         self.num_bad = len(self.bad_lines)
         self.num_good = self._i
+
+
+class S3Object:
+    def __init__(self,
+                 bucket: str = None,
+                 key: str = None,
+                 console_url: str = None,
+                 s3_uri: str = None,
+                 obj: Object = None):
+        """Translate avarious forms of representing an s3 object.
+
+        s3_uri eg. s3://bucket/path/to/key.json
+        s3_uri eg. bucket/key.json
+        s3_uri eg. https://trz-s3-test.s3.us-east-2.amazonaws.com/figure-65.png
+        s3_uri eg. https://trz-s3-test.s3.amazonaws.com/figure-65.png?X-Amz-Algorithm...
+        console_url eg. https://s3.console.aws.amazon.com/s3/object/my-bucket?region=us-east-2&bucketType=general&prefix=key.json
+
+        Args:
+            bucket (str, optional): _description_. Defaults to None.
+            key (str, optional): _description_. Defaults to None.
+            console_url (str, optional): _description_. Defaults to None.
+            s3_uri (str, optional): _description_. Defaults to None.
+
+        Example:
+            >>> from trz_py_utils.s3 import S3Object
+            >>> s3_obj = S3Object("b", "k")
+            >>> s3_obj.s3_uri
+            's3://b/k'
+
+        Example:
+            >>> from trz_py_utils.s3 import S3Object
+            >>> url = "https://s3.console.aws.amazon.com/s3/object/my-bucket?region=us-east-2&bucketType=general&prefix=key.json"
+            >>> s3_obj = S3Object(console_url=url)
+            >>> s3_obj.bucket_name
+            'my-bucket'
+            >>> s3_obj.key
+            'key.json'
+
+        Example:
+            >>> from trz_py_utils.s3 import S3Object
+            >>> s3_obj = S3Object(s3_uri="s3://bucket/path/to/key.json")
+            >>> "s3.console.aws.amazon.com" in s3_obj.console_url
+            True
+            >>> s3_obj.console_url
+            'https://s3.console.aws.amazon.com/s3/object/bucket?region=us-east-2&prefix=path%2Fto%2Fkey.json'
+            >>> S3Object(console_url=s3_obj.console_url).key
+            'path/to/key.json'
+
+        Example:
+            >>> from trz_py_utils.s3 import S3Object
+            >>> obj = S3Object(s3_uri="https://trz-s3-test.s3.us-east-2.amazonaws.com/figure-65.png")
+            >>> obj.url
+            'https://trz-s3-test.s3.us-east-2.amazonaws.com/figure-65.png'
+
+        """  # noqa
+        # eg. s3://bucket/path/to/key
+        # eg. bucket/path/to/key
+        if obj:
+            self.bucket_name = obj.bucket_name
+            self.key = obj.key
+        elif s3_uri and "amazonaws.com" in s3_uri:
+            self.bucket_name, self.key = self._parse_direct_url(s3_uri)
+        elif s3_uri and "s3://" in s3_uri:
+            self.bucket_name, self.key = self._parse_s3_uri(s3_uri)
+        elif console_url:
+            self.bucket_name, self.key = self._parse_console_url(console_url)
+        elif bucket and key:
+            self.bucket_name = bucket
+            self.key = key
+
+        self.obj = get_object(self.bucket_name, self.key)
+        self.console_url = console_url or make_console_url(self.obj)
+        self.s3_uri = f"s3://{bucket}/{key}"
+        self.url = make_s3_url(self.obj)
+
+    def _parse_s3_uri(self, s3_uri: str):
+        s3_uri = unquote(s3_uri)
+        s3_uri = f"s3://{s3_uri}" if "s3" not in s3_uri else s3_uri
+        url: ParseResult = urlparse(s3_uri)
+        if url.params or url.query or url.fragment:
+            raise ValueError(f"pass arg console_url not s3_uri: {s3_uri}")
+
+        bucket = url.netloc
+        key = url.path.strip("/")
+
+        return bucket, key
+
+    def _parse_console_url(self, console_url: str):
+        # https://s3.console.aws.amazon.com/s3/object/trz-fmcsa-dev?region=us-east-2&bucketType=general&prefix=headers/crash_carriers/CrashCarrier_01012018_12312018HDR.txt.json
+        console_url = unquote(console_url)
+        invalid = [
+            urlparse(console_url).netloc != "s3.console.aws.amazon.com",
+            "s3/object/" not in console_url,
+            "prefix=" not in console_url,
+        ]
+        if any(invalid):
+            raise ValueError(f"not a console url: {console_url}")
+
+        bucket = console_url.split("s3/object/")[1].split("?")[0]
+        key = console_url.split("prefix=")[1].split("&")[0]
+
+        return bucket, key
+
+    def _parse_direct_url(self, url: str):
+        # eg. https://trz-s3-test.s3.us-east-2.amazonaws.com/figure-65.png
+        # eg. https://trz-s3-test.s3.amazonaws.com/figure-65.png?X-Amz-Algor...
+        url = unquote(url)
+        bucket = urlparse(url).netloc.split(".")[0]
+        key = urlparse(url).path.strip("/")
+        return bucket, key
+
+    def new_prefix(self, prefix: str):
+        key_no_root = self.key.split('/', maxsplit=1)[1]
+        return f"{prefix}/{key_no_root}"

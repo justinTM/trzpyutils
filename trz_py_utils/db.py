@@ -77,6 +77,18 @@ def execute_sql(connection: Connection, sql: str,
     Example:
         >>> from trz_py_utils.db import connect, execute_sql
         >>> import os; uri = os.environ.get("PG_DB_URI");
+        >>> sql_statement = '''
+        ...     CREATE TABLE IF NOT EXISTS t2(col1 VARCHAR);
+        ...     INSERT INTO t2 (col1) VALUES (%s);
+        ...     '''
+        >>> execute_sql(
+        ...     connection=connect(uri),
+        ...     sql=sql_statement,
+        ...     values=[("val1", ), ("val2", )], )
+
+    Example:
+        >>> from trz_py_utils.db import connect, execute_sql
+        >>> import os; uri = os.environ.get("PG_DB_URI");
         >>> print(uri)
         postgresql://root:password@postgres:5432/trz
         >>> connection = connect(uri)
@@ -102,6 +114,8 @@ def execute_sql(connection: Connection, sql: str,
     """
     log.info("executing sql...")
     response = None
+    log.debug(f"sql={sql}")
+    log.debug(f"values={values}")
 
     def try_fetch(cursor):
         try:
@@ -113,7 +127,10 @@ def execute_sql(connection: Connection, sql: str,
 
     try:
         with connection.cursor() as cursor:
-            cursor.execute(sql, values)
+            if isinstance(values, list):
+                cursor.executemany(sql, values)
+            else:
+                cursor.execute(sql, values)
             log.info("executed.")
             if is_return:
                 response = try_fetch(cursor)

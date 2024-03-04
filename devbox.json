@@ -4,7 +4,7 @@
     "vim@latest",
     "terraform@1.5.7",
     "docker@latest",
-    "awscli@latest",
+    "awscli@1.31.6",
     "jq@latest",
     "terragrunt@latest",
     "poetry@1.6.1",

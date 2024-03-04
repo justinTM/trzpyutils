@@ -1,7 +1,7 @@
 {
   "lockfile_version": "1",
   "packages": {
-    "awscli@latest": {
+    "awscli@1.31.6": {
       "last_modified": "2024-01-14T03:55:27Z",
       "resolved": "github:NixOS/nixpkgs/dd5621df6dcb90122b50da5ec31c411a0de3e538#awscli",
       "source": "devbox-search",

@@ -312,17 +312,10 @@ class BadFileReader:
                          line_no=self._i,
                          delimiter=self.delim)
 
-            if bl.count_cols() == (self.ncols - 1):
-                # fix this line and continue
-                # add extra delimiter if off by one
-                # eg. 12 headers, 11 columns, create empty value for last col
-                log.warn(f"line {bl.line_no}: appending '{self.delim}'")
-                line += self.delim
-            else:
-                # add this bad line to list
-                bl.print()
-                self.bad_lines.append(bl)
-                return None
+            # add this bad line to list
+            bl.print()
+            self.bad_lines.append(bl)
+            return None
 
         # replace substring if found
         if self.replace in line:
@@ -521,3 +514,8 @@ class BadFileReader:
         """
         for bl in self.bad_lines:
             _ = [log.info(line) for line in bl.caret_under_matches()]
+
+
+def tmp_path(ext: str = None):
+    ext = f".{ext}" if ext and "." not in ext else ext
+    return f"/tmp/{uuid4()}{ext}"

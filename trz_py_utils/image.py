@@ -357,7 +357,7 @@ def draw_polygon_labels(img: Image.Image,
 # # result_image.
 
 
-# # # https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html#text-anchors
+# # # https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html#text-anchors  # noqa
 # # text_anchor="la"
 # # text_outline_color="white"
 # # text_outline_width=3
@@ -368,9 +368,3 @@ def draw_polygon_labels(img: Image.Image,
 # # bbox_width=2
 # # bbox_color
 # # bbox_radius
-
-
-
-
-
-

@@ -241,6 +241,101 @@ def parse_event(event: APIGatewayProxyEventV2,
         >>> error, body = parse_event(EVENT, {}, REQUEST_SCHEMA)
         >>> error
         SchemaValidationError("Failed schema validation. Error: data.body must be object, Path: ['data', 'body'], Data: ['val1']")
+
+    Example:
+    >>> from trz_py_utils.lambda_func import parse_event, error_response
+    >>> from aws_lambda_powertools.utilities.data_classes import (
+    ...     APIGatewayProxyEventV2,
+    ... )
+    >>> import base64
+    >>> def b64_parser(event, context) -> tuple[Exception, str]:
+    ...    try:
+    ...        parsed = APIGatewayProxyEventV2(event)
+    ...        body = base64.b64decode(parsed.body) if parsed.is_base64_encoded else body
+    ...        return None, body, parsed.headers
+    ...    except Exception as e:
+    ...        return e, None, None
+    >>> EVENT = {
+    ...     "body": "ZGF0YSB0byBiZSBlbmNvZGVk",
+    ...     "headers": {
+    ...         "content-type": "application/text",
+    ...         "content-disposition": "attachment; filename=helloworld.txt",
+    ...     },
+    ...     "isBase64Encoded": True
+    ... }
+    >>> INPUT = {
+    ...     "$schema": "http://json-schema.org/draft-07/schema#",
+    ...     "$id": "https://example.com/object1660222326.json",
+    ...     "type": "object",
+    ...     "required": ["body", "headers", "isBase64Encoded"],
+    ...     "example": {
+    ...         "version": "2.0",
+    ...         "routeKey": "POST /",
+    ...         "rawPath": "/",
+    ...         "rawQueryString": "",
+    ...         "headers": {
+    ...             "accept": "*/*",
+    ...             "content-disposition": "attachment",
+    ...             "content-length": "1251971",
+    ...             "content-type": "image/jpeg",
+    ...             "host": "l1ybdgg5dd.execute-api.us-east-2.amazonaws.com",
+    ...             "x-amzn-trace-id": "Root=1-65e640cf-55bc7dd437be994f796ce0a0",
+    ...             "x-forwarded-for": "74.11.113.72",
+    ...             "x-forwarded-port": "443",
+    ...             "x-forwarded-proto": "https"
+    ...         },
+    ...         "requestContext": {
+    ...             "accountId": "331243380162",
+    ...             "apiId": "l1ybdgg5dd",
+    ...             "domainName": "l1ybdgg5dd.execute-api.us-east-2.amazonaws.com",
+    ...             "domainPrefix": "l1ybdgg5dd",
+    ...             "http": {
+    ...                 "method": "POST",
+    ...                 "path": "/",
+    ...                 "protocol": "HTTP/1.1",
+    ...                 "sourceIp": "74.11.113.72",
+    ...                 "userAgent": ""
+    ...             },
+    ...             "requestId": "UH8QsidcCYcEPKA=",
+    ...             "routeKey": "POST /",
+    ...             "stage": "$default",
+    ...             "time": "04/Mar/2024:21:44:48 +0000",
+    ...             "timeEpoch": 1709588688917
+    ...         },
+    ...         "body": "/9j/4AAQSkZJRgABAQAAAQABAAD//gAFAAAA/9sAQwAKBwcIBwYKCAgICwoKCw4YEA4NDQ4dFRYRGCMfJSQiHyIhJis3LyYpNCkh",
+    ...         "isBase64Encoded": True
+    ...     },
+    ...     "properties": {
+    ...         "body": {
+    ...             "$id": "#root/body",
+    ...             "title": "body of the request, alongside context and headers",
+    ...             "type": "string",
+    ...             "default": "",
+    ...         },
+    ...         "headers": {
+    ...             "$id": "#root/headers",
+    ...             "title": "the HTTP headers sent with thre request from the camera",
+    ...             "type": "object",
+    ...             "required": ["content-disposition", "content-type"],
+    ...             "properties": {
+    ...                 "content-disposition": {
+    ...                     "type": "string"
+    ...                 },
+    ...                 "content-type": {
+    ...                     "type": "string"
+    ...                 },
+    ...             }
+    ...         },
+    ...         "isBase64Encoded": {
+    ...             "type": "boolean"
+    ...         }
+    ...     },
+    ... }
+    >>> error, body, headers = parse_event(event=EVENT,
+    ...                                    context={},
+    ...                                    schema=INPUT,
+    ...                                    parser=b64_parser)
+    >>> error
     """  # noqa
     body = {}
     error = None
@@ -249,8 +344,13 @@ def parse_event(event: APIGatewayProxyEventV2,
         return error, body
 
     try:
+        log.debug("trying to decode body as JSON if possible...")
         if isinstance(event.get("body", {}), str):
             event["body"] = json.loads(event["body"])
+    except Exception as e:
+        log.debug("JSON decode failed, ignoring")
+        log.debug(e)
+    try:
         return validator(parser, inbound_schema=schema)(event, context)
     except SchemaValidationError as e:
         return e, {}

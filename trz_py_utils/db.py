@@ -54,14 +54,26 @@ def fast_insert_into(connection: Connection,
         ...     rows=[{"col1": 1}, {"col1": 2}, {"col1": 3}, {"col1": 4}], )
         >>> db.execute_sql(connect(uri), "SELECT * FROM fast", is_return=True)
         [('1',), ('2',), ('3',), ('4',)]
-    """
-    if not isinstance(rows, list) or not isinstance(rows[0], dict):
-        raise ValueError("must pass list[dict[str, Any]]!")
-    num_rows = len(rows)
 
-    if not num_rows:
+    Example:
+        >>> from trz_py_utils import db
+        >>> import os; uri = os.environ.get("PG_DB_URI");
+        >>> db.execute_sql(connect(uri), "CREATE TABLE fast2(col1 VARCHAR);")
+        >>> db.fast_insert_into(
+        ...     connection=connect(uri),
+        ...     table="fast",
+        ...     rows=[], )
+        >>> db.execute_sql(connect(uri), "SELECT * FROM fast2", is_return=True)
+        []
+    """
+    if not isinstance(rows, list):
+        raise ValueError("must pass list[dict[str, Any]]!")
+    elif not len(rows):
         log.info("skipping 0-length rows")
         return
+    elif not isinstance(rows[0], dict):
+        raise ValueError("must pass list[dict[str, Any]]!")
+    num_rows = len(rows)
 
     cols = ",".join(rows[0].keys())
     row_tuples = tuple(tuple(row.values()) for row in rows)

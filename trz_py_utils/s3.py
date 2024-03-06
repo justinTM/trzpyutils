@@ -850,7 +850,7 @@ class S3Object:
                  console_url: str = None,
                  s3_uri: str = None,
                  obj: Object = None):
-        """Translate avarious forms of representing an s3 object.
+        """Translate various forms of representing an s3 object.
 
         s3_uri eg. s3://bucket/path/to/key.json
         s3_uri eg. bucket/key.json
@@ -953,5 +953,32 @@ class S3Object:
         return bucket, key
 
     def new_prefix(self, prefix: str):
-        key_no_root = self.key.split('/', maxsplit=1)[1]
+        """strip off or add existing root dir and replace it
+
+        Args:
+            prefix (str): _description_
+
+        Example:
+            >>> from trz_py_utils.s3 import S3Object
+            >>> url = "https://s3.console.aws.amazon.com/s3/object/my-bucket?region=us-east-2&bucketType=general&prefix=key.json"
+            >>> s3_obj = S3Object(console_url=url)
+            >>> s3_obj.new_prefix("out/")
+            'out/key.json'
+
+        Example:
+            >>> from trz_py_utils.s3 import S3Object
+            >>> url = "https://s3.console.aws.amazon.com/s3/object/my-bucket?region=us-east-2&bucketType=general&prefix=in/key.json"
+            >>> s3_obj = S3Object(console_url=url)
+            >>> s3_obj.new_prefix("out/")
+            'out/key.json'
+        """  # noqa
+        # strip off trailing "/" from prefix
+        prefix = prefix[:-1] if prefix[-1] == "/" else prefix
+
+        # append prefix if one doesn't already exist
+        if "/" not in self.key:
+            return f"{prefix}/{self.key}"
+
+        # replace prefix if it exists
+        key_no_root = self.key.split("/", maxsplit=1)[1]
         return f"{prefix}/{key_no_root}"

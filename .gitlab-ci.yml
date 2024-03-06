@@ -3,7 +3,7 @@ include:
     ref: master
     file: global.yml
   - project: trapezoidtech/pipelines
-    ref: master
+    ref: TRZ-180-image-id-uploads-db
     file: python/jobs/tests.yml
 
 variables:

@@ -1,5 +1,6 @@
 from typing import Any
 import psycopg2
+from psycopg2.extras import execute_values
 from psycopg2._psycopg import connection as Connection
 import logging as log
 
@@ -35,7 +36,46 @@ def connect(uri: str):
         raise
 
 
-def make_sql_insert_into(table: str, data: dict[str, Any]):
+def fast_insert_into(connection: Connection,
+                     table: str,
+                     rows: list[dict[str, Any]],
+                     sql: str = None,
+                     **kwargs):
+    """sends entire SQL string with values from cursor.mogrify()
+    https://stackoverflow.com/a/10147451/5563327
+
+    Example:
+        >>> from trz_py_utils import db
+        >>> import os; uri = os.environ.get("PG_DB_URI");
+        >>> db.execute_sql(connect(uri), "CREATE TABLE fast(col1 VARCHAR);")
+        >>> db.fast_insert_into(
+        ...     connection=connect(uri),
+        ...     table="fast",
+        ...     rows=[{"col1": 1}, {"col1": 2}, {"col1": 3}, {"col1": 4}], )
+        >>> db.execute_sql(connect(uri), "SELECT * FROM fast", is_return=True)
+        [('1',), ('2',), ('3',), ('4',)]
+    """
+    if not isinstance(rows, list) or not isinstance(rows[0], dict):
+        raise ValueError("must pass list[dict[str, Any]]!")
+    num_rows = len(rows)
+
+    cols = ",".join(rows[0].keys())
+    row_tuples = tuple(tuple(row.values()) for row in rows)
+    sql = sql or f"INSERT INTO {table} ({cols}) VALUES %s"
+    log.debug(f"cols={cols}, rows={row_tuples}")
+    try:
+        with connection.cursor() as cursor:
+            execute_values(cursor, sql, row_tuples, **kwargs)
+        connection.commit()
+        log.info(f"inserted {num_rows} rows.")
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        raise e
+
+
+def make_sql_insert_into(table: str,
+                         data: dict[str, Any]):
     """
     Makes a SQL string to create a row of data from a table name
     and dictionary of whose keys are column names.

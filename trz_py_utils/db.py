@@ -59,6 +59,10 @@ def fast_insert_into(connection: Connection,
         raise ValueError("must pass list[dict[str, Any]]!")
     num_rows = len(rows)
 
+    if not num_rows:
+        log.info("skipping 0-length rows")
+        return
+
     cols = ",".join(rows[0].keys())
     row_tuples = tuple(tuple(row.values()) for row in rows)
     sql = sql or f"INSERT INTO {table} ({cols}) VALUES %s"

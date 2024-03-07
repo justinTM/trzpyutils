@@ -2,7 +2,6 @@ import logging as log
 from typing import Iterator
 from uuid import uuid4
 from charset_normalizer import from_path
-import chardet
 import subprocess
 import re
 from re import Match
@@ -231,12 +230,6 @@ class BadFileReader:
         log.info(json.dumps(headers, indent=4))
 
         return headers
-
-    def encoding_chardet(self, mode="rb"):
-        mode = mode or self._mode
-        with open(self.path, mode) as file:
-            result = chardet.detect(file.read())
-        return result['encoding']
 
     def encoding(self, bytes_scan_encoding: int = 1024*1024):
         """Uses subshell command `file` with `-i` option to get encoding.

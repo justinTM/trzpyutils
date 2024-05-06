@@ -7,10 +7,11 @@
     "awscli@1.31.6",
     "jq@latest",
     "terragrunt@latest",
-    "poetry@1.6.1",
     "python@3.11.6",
     "docker-buildx@latest",
-    "dive@latest"
+    "dive@latest",
+    "poetry@1.7.1",
+    "gitlab-ci-local@latest"
   ],
   "shell": {
     "init_hook": [
@@ -85,8 +86,7 @@
         "docker run -it --entrypoint /bin/bash $tag"
       ],
       "tests": [
-        "docker-compose -f ${CI_PROJECT_DIR}/localstack/docker-compose.yml up --detach",
-        "pytest --doctest-modules --junitxml=report.xml ${SRC_DIR}"
+        "gitlab-ci-local --variable DOCKER_HOST='' --volume ~/.aws:/root/.aws --privileged --mount-cache 'Py DocTest'"
       ],
       "lambda": [
         "tag=\"$(devbox run build | sed \"s/Using virtualenv: .*venv//g\" | tr -d '\n')\"",

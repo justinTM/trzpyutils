@@ -57,6 +57,13 @@ def make_queue_url_from_sqs_event(event: dict[str, Any]):
 
     Example:
         >>> from trz_py_utils.sqs import make_queue_url_from_sqs_event
+        >>> url = make_queue_url_from_sqs_event({"Records": [1, 2]})
+        Traceback (most recent call last):
+          ...
+        NotImplementedError: can't handle multiple SQS records
+
+    Example:
+        >>> from trz_py_utils.sqs import make_queue_url_from_sqs_event
         >>> make_queue_url_from_sqs_event({"Records": [{
         ...     "eventSourceARN": "arn:aws:sqs:us-west-2:123456789012:MyQueue"
         ... }]})

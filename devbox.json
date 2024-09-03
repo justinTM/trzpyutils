@@ -11,7 +11,8 @@
     "docker-buildx@latest",
     "dive@latest",
     "poetry@1.7.1",
-    "gitlab-ci-local@latest"
+    "gitlab-ci-local@latest",
+    "pipreqs@latest"
   ],
   "shell": {
     "init_hook": [

@@ -169,6 +169,70 @@
         }
       }
     },
+    "pipreqs@latest": {
+      "last_modified": "2024-05-22T06:18:38Z",
+      "resolved": "github:NixOS/nixpkgs/3f316d2a50699a78afe5e77ca486ad553169061e#pipreqs",
+      "source": "devbox-search",
+      "version": "0.4.13",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ral8f7g85ym74350kf9m51sxm7q00hnl-pipreqs-0.4.13",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/nkikmvz2gbj0gp1gpkgx066rs87s05fz-pipreqs-0.4.13-dist"
+            }
+          ],
+          "store_path": "/nix/store/ral8f7g85ym74350kf9m51sxm7q00hnl-pipreqs-0.4.13"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/nbysk7w636jgzzwfgjsg8rwbkb2dk169-pipreqs-0.4.13",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/4d9965cy252hxmw6x33f9kkr2ar0h7zs-pipreqs-0.4.13-dist"
+            }
+          ],
+          "store_path": "/nix/store/nbysk7w636jgzzwfgjsg8rwbkb2dk169-pipreqs-0.4.13"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/2iqn1nq2pdhn3fsdfq2hir1c9np82q1w-pipreqs-0.4.13",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/8bf9zm5gdz99h6xxk73ldj3nkhrds8f7-pipreqs-0.4.13-dist"
+            }
+          ],
+          "store_path": "/nix/store/2iqn1nq2pdhn3fsdfq2hir1c9np82q1w-pipreqs-0.4.13"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/wvypvdivh1risispd5vz798yfw84nbg3-pipreqs-0.4.13",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/24xix11nrfh15k0mhjp35jyfc9y01w5g-pipreqs-0.4.13-dist"
+            }
+          ],
+          "store_path": "/nix/store/wvypvdivh1risispd5vz798yfw84nbg3-pipreqs-0.4.13"
+        }
+      }
+    },
     "poetry@1.7.1": {
       "last_modified": "2024-02-24T18:06:34-05:00",
       "plugin_version": "0.0.4",
